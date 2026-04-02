@@ -142,4 +142,7 @@ header {
     .auth-card {
         width: auto;
     }
+    .auth-card.wide{
+        width: auto;
+    }
 }
