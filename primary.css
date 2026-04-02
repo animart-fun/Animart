@@ -109,7 +109,7 @@
     .suggestions {
         position: absolute;
         top: 70%;
-        width: 620px;
+        width: 560px;
         background: #122b4d;
         border-radius: 0 0 8px 8px;
         display: none;
