@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cart | Animart</title>
+  <link rel="stylesheet" href="primary.css">
+  <link rel="stylesheet" href="cart.css">
+  <link rel="icon" href="assets/logo.png" type="image/png">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Averia+Gruesa+Libre&family=Jua&family=League+Script&family=Noto+Serif:ital,wght@0,100..900;1,100..900&display=swap');
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="nav-left">
+      <div class="logo"><a href="home.html">Animart</a></div>
+    </div>
+
+    <div class="nav-center">
+      <div class="search-bar">
+        <input type="text" id="searchInput" placeholder="Search anime figures, candles, gifts..." />
+        <button type="button"><span aria-hidden="true"></span></button>
+      </div>
+      <div class="suggestions" id="suggestions"></div>
+    </div>
+
+    <div class="nav-right">
+      <div class="nav-item"><span>Hello, Sign in</span><strong>Account</strong></div>
+      <div class="nav-item"><strong><a href="cart.html" class="cart-link">Cart</a></strong></div>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="cart-shell">
+      <section class="cart-hero">
+        <p class="eyebrow">Your Basket</p>
+        <h1>Cart & Selection</h1>
+        <p class="cart-copy">Choose the exact products you want to checkout, keep others saved for later, and move
+          through checkout with a cleaner order summary.</p>
+      </section>
+
+      <section class="cart-layout">
+        <div class="cart-items-panel">
+          <div class="panel-head top-row">
+            <div>
+              <h2>Cart Items</h2>
+              <span class="cart-count" id="cartCount">0 items</span>
+            </div>
+            <label class="select-all">
+              <input type="checkbox" id="selectAllCart">
+              <span>Select all</span>
+            </label>
+          </div>
+
+          <div class="selection-note" id="selectedSummary">0 selected</div>
+          <div class="cart-items" id="cartItems"></div>
+        </div>
+
+        <aside class="summary-panel">
+          <div class="panel-head">
+            <h2>Order Summary</h2>
+          </div>
+
+          <div class="summary-lines">
+            <div class="summary-row">
+              <span>Selected subtotal</span>
+              <strong id="subtotalAmount">?0</strong>
+            </div>
+            <div class="summary-row">
+              <span>Shipping</span>
+              <strong id="shippingAmount">Free</strong>
+            </div>
+            <div class="summary-row">
+              <span>Discount</span>
+              <strong id="discountAmount">?0</strong>
+            </div>
+            <div class="summary-row total">
+              <span>Total</span>
+              <strong id="totalAmount">?0</strong>
+            </div>
+          </div>
+
+          <button class="checkout-btn" id="checkoutSelectedBtn" type="button">Proceed with Selected Items</button>
+          <a href="search.html" class="secondary-link">Keep Shopping</a>
+        </aside>
+      </section>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-content">
+      <div class="footer-column">
+        <h3 class="footer-logo">Animart</h3>
+        <p>Your one-stop shop for premium anime collectibles, handmade candles, and expressive gift picks.</p>
+      </div>
+
+      <div class="footer-column">
+        <h4>Customer Service</h4>
+        <ul>
+          <li><a href="cart.html">Track Order</a></li>
+          <li><a href="terms.html">Returns & Refunds</a></li>
+          <li><a href="privacy.html">Shipping Info</a></li>
+          <li><a href="contact.html">Contact Us</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-column">
+        <h4>Legal</h4>
+        <ul>
+          <li><a href="privacy.html">Privacy Policy</a></li>
+          <li><a href="terms.html">Terms of Service</a></li>
+          <li><a href="cookies.html">Cookie Policy</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <p>&copy; 2026 Animart. All rights reserved.</p>
+      <div class="payment-methods">
+        <span>Visa</span> <span>Mastercard</span> <span>UPI</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="data/anime/anime.js"></script>
+  <script src="data/candles/candles.js"></script>
+  <script src="data/diy/diy.js"></script>
+  <script src="data/merch/merch.js"></script>
+  <script src="data/toys/toys.js"></script>
+  <script src="data/index.js"></script>
+  <script src="data/candles/kk.js"></script>
+  <script src="data/anime/hh.js"></script>
+  <script src="data/stores_index.js"></script>
+  <script src="js/home.js"></script>
+  <script src="js/cart.js"></script>
+</body>
+
+</html>

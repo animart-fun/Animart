@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Us | Animart</title>
+    <link rel="stylesheet" href="primary.css">
+    <link rel="stylesheet" href="home.css">
+    <link rel="stylesheet" href="info.css">
+    <link rel="stylesheet" href="checkout.css">
+    <link rel="icon" href="assets/logo.png" type="image/png">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Averia+Gruesa+Libre&family=Jua&family=League+Script&family=Noto+Serif:ital,wght@0,100..900;1,100..900&display=swap');
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="nav-left">
+            <div class="logo"><a href="home.html">Animart</a></div>
+        </div>
+        <div class="nav-center">
+            <div class="search-bar"><input type="text" id="searchInput"
+                    placeholder="Search anime figures, candles, gifts..." /><button type="button"><span
+                        aria-hidden="true"></span></button></div>
+            <div class="suggestions" id="suggestions"></div>
+        </div>
+        <div class="nav-right">
+            <div class="nav-item"><span>Hello, Sign in</span><strong>Account</strong></div>
+            <div class="nav-item"><strong><a href="cart.html"
+                        style="color: inherit; text-decoration: none;">Cart</a></strong></div>
+        </div>
+    </header>
+    <main class="page-shell">
+        <section class="page-hero">
+            <p class="eyebrow">Support</p>
+            <h1>Contact Us</h1>
+            <p class="page-copy">Need help with an order, product details, gifting questions, or a storefront issue?
+                Send a note and this demo will save your message locally.</p>
+        </section>
+        <section class="page-card contact-grid">
+            <div>
+                <h2>Support Details</h2>
+                <p>Email: support@animart.demo</p>
+                <p>Hours: Mon-Sat, 10:00 AM to 7:00 PM</p>
+                <p>Best for: order updates, product clarifications, bulk gifting, and custom requests.</p>
+            </div>
+            <form id="contactForm" class="page-form">
+                <div class="field-group">
+                    <label for="contactName">Name</label>
+                    <input type="text" id="contactName" name="name" required>
+                </div>
+                <div class="field-group">
+                    <label for="contactEmail">Email</label>
+                    <input type="email" id="contactEmail" name="email" required>
+                </div>
+                <div class="field-group">
+                    <label for="contactMessage">Message</label>
+                    <textarea id="contactMessage" name="message" rows="5" required></textarea>
+                </div>
+                <button type="submit" class="checkout-btn">Send Message</button>
+                <p id="contactStatus" class="page-status"></p>
+            </form>
+        </section>
+    </main>
+    <footer class="site-footer">
+        <div class="footer-content">
+            <div class="footer-column">
+                <h3 class="footer-logo">Animart</h3>
+                <p>Your one-stop shop for premium anime collectibles, handmade candles, and expressive gift picks.</p>
+            </div>
+            <div class="footer-column">
+                <h4>Customer Service</h4>
+                <ul>
+                    <li><a href="cart.html">Track Order</a></li>
+                    <li><a href="terms.html">Returns & Refunds</a></li>
+                    <li><a href="privacy.html">Shipping Info</a></li>
+                    <li><a href="contact.html">Contact Us</a></li>
+                </ul>
+            </div>
+            <div class="footer-column">
+                <h4>Legal</h4>
+                <ul>
+                    <li><a href="privacy.html">Privacy Policy</a></li>
+                    <li><a href="terms.html">Terms of Service</a></li>
+                    <li><a href="cookies.html">Cookie Policy</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 Animart. All rights reserved.</p>
+            <div class="payment-methods"><span>Visa</span> <span>Mastercard</span> <span>UPI</span></div>
+        </div>
+    </footer>
+    <script src="data/anime/anime.js"></script>
+    <script src="data/candles/candles.js"></script>
+    <script src="data/diy/diy.js"></script>
+    <script src="data/merch/merch.js"></script>
+    <script src="data/toys/toys.js"></script>
+    <script src="data/index.js"></script>
+    <script src="data/candles/kk.js"></script>
+    <script src="data/anime/hh.js"></script>
+    <script src="data/stores_index.js"></script>
+    <script src="js/home.js"></script>
+    <script src="js/cart.js"></script>
+    <script src="js/info.js"></script>
+</body>
+
+</html>
