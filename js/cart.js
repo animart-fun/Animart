@@ -19,7 +19,9 @@ function getCart() {
 }
 
 function saveCart(cart) {
-    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart.map(normalizeCartItem)));
+    const normalizedCart = cart.map(normalizeCartItem);
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(normalizedCart));
+    window.animartFirebase?.writeCartToDatabase?.(normalizedCart).catch(() => {});
 }
 
 function addToCart(productId, quantity = 1, options = {}) {
@@ -149,7 +151,7 @@ function renderCartPage() {
             <div class="empty-cart">
                 <h3>Your cart is waiting</h3>
                 <p>Pick out a figure, candle, or merch drop to see it here.</p>
-                <a href="home.html" class="cta-link">Continue Shopping</a>
+                <a href="index.html" class="cta-link">Continue Shopping</a>
             </div>
         `;
         return;
@@ -229,6 +231,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     renderCartPage();
 });
+
+window.addEventListener("animart:cart-synced", renderCartPage);
 
 window.getCart = getCart;
 window.saveCart = saveCart;

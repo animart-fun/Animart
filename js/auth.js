@@ -1,26 +1,4 @@
-const USERS_STORAGE_KEY = "animartUsers";
-const CURRENT_USER_STORAGE_KEY = "animartCurrentUser";
-
-function getUsers() {
-    try {
-        const parsed = JSON.parse(localStorage.getItem(USERS_STORAGE_KEY)) || [];
-        return Array.isArray(parsed) ? parsed : [];
-    } catch (error) {
-        return [];
-    }
-}
-
-function saveUsers(users) {
-    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
-}
-
-function setCurrentUser(user) {
-    localStorage.setItem(CURRENT_USER_STORAGE_KEY, JSON.stringify(user));
-}
-
-function clearCurrentUser() {
-    localStorage.removeItem(CURRENT_USER_STORAGE_KEY);
-}
+const LOGIN_REDIRECT_PAGE = "index.html";
 
 function showMessage(target, message, type) {
     if (!target) return;
@@ -32,18 +10,98 @@ function validateEmail(email) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+function validatePhone(phoneNumber) {
+    return !phoneNumber || /^[0-9+\-\s()]{7,20}$/.test(phoneNumber);
+}
+
+function getFriendlyAuthError(error) {
+    const code = error?.code || "";
+    const hostname = window.location.hostname || "your site domain";
+
+    if (code === "auth/unauthorized-domain") {
+        return `Google sign-in is blocked because "${hostname}" is not added in Firebase Authorized Domains. Open Firebase Console > Authentication > Settings > Authorized domains and add this exact domain, then try again.`;
+    }
+
+    if (code === "auth/popup-closed-by-user") {
+        return "The Google sign-in popup was closed before completion. Please try again.";
+    }
+
+    if (code === "auth/popup-blocked") {
+        return "Your browser blocked the Google sign-in popup. Please allow popups for this site and try again.";
+    }
+
+    if (code === "auth/invalid-login-credentials") {
+        return "Incorrect email or password.";
+    }
+
+    if (code === "auth/email-already-in-use") {
+        return "An account with this email already exists.";
+    }
+
+    if (code === "auth/weak-password") {
+        return "Password should be at least 6 characters.";
+    }
+
+    return error?.message || "Something went wrong. Please try again.";
+}
+
+function renderSignedInState() {
+    const signedInState = document.getElementById("signedInState");
+    if (!signedInState) return;
+
+    const currentUser = window.animartFirebase?.getCurrentUser?.();
+    if (!currentUser) {
+        signedInState.innerHTML = "";
+        return;
+    }
+
+    signedInState.innerHTML = `
+        <p>You are currently signed in as <strong>${currentUser.name}</strong>.</p>
+        <button type="button" class="btn secondary-btn" id="signOutBtn">Sign Out</button>
+    `;
+
+    document.getElementById("signOutBtn")?.addEventListener("click", async () => {
+        await window.animartFirebase.signOutUser();
+        window.location.reload();
+    });
+}
+
+function attachGoogleAuth(buttonId, messageBox) {
+    const googleButton = document.getElementById(buttonId);
+    if (!googleButton) return;
+
+    googleButton.addEventListener("click", async () => {
+        try {
+            googleButton.disabled = true;
+            showMessage(messageBox, "Connecting your Google account...", "success");
+            await window.animartFirebase.signInWithGoogle();
+            showMessage(messageBox, "Google sign in successful. Redirecting...", "success");
+            window.setTimeout(() => {
+                window.location.href = LOGIN_REDIRECT_PAGE;
+            }, 700);
+        } catch (error) {
+            showMessage(messageBox, getFriendlyAuthError(error), "error");
+        } finally {
+            googleButton.disabled = false;
+        }
+    });
+}
+
 function setupSignupForm() {
     const form = document.getElementById("signupForm");
     if (!form) return;
 
     const messageBox = document.getElementById("authMessage");
+    attachGoogleAuth("googleSignupBtn", messageBox);
 
-    form.addEventListener("submit", (event) => {
+    form.addEventListener("submit", async (event) => {
         event.preventDefault();
 
         const formData = new FormData(form);
         const name = String(formData.get("name") || "").trim();
         const email = String(formData.get("email") || "").trim().toLowerCase();
+        const phoneNumber = String(formData.get("phoneNumber") || "").trim();
+        const dateOfBirth = String(formData.get("dateOfBirth") || "").trim();
         const password = String(formData.get("password") || "");
         const confirmPassword = String(formData.get("confirmPassword") || "");
 
@@ -57,6 +115,16 @@ function setupSignupForm() {
             return;
         }
 
+        if (!validatePhone(phoneNumber)) {
+            showMessage(messageBox, "Please enter a valid phone number or leave it blank.", "error");
+            return;
+        }
+
+        if (!dateOfBirth) {
+            showMessage(messageBox, "Please select your date of birth.", "error");
+            return;
+        }
+
         if (password.length < 6) {
             showMessage(messageBox, "Password should be at least 6 characters.", "error");
             return;
@@ -67,26 +135,29 @@ function setupSignupForm() {
             return;
         }
 
-        const users = getUsers();
-        if (users.some((user) => user.email === email)) {
-            showMessage(messageBox, "An account with this email already exists.", "error");
-            return;
+        try {
+            const submitButton = form.querySelector('button[type="submit"]');
+            if (submitButton) submitButton.disabled = true;
+            showMessage(messageBox, "Creating your account...", "success");
+
+            await window.animartFirebase.signUpWithEmail({
+                name,
+                email,
+                password,
+                phoneNumber,
+                dateOfBirth
+            });
+
+            showMessage(messageBox, "Account created successfully. Redirecting...", "success");
+            window.setTimeout(() => {
+                window.location.href = LOGIN_REDIRECT_PAGE;
+            }, 900);
+        } catch (error) {
+            showMessage(messageBox, getFriendlyAuthError(error), "error");
+        } finally {
+            const submitButton = form.querySelector('button[type="submit"]');
+            if (submitButton) submitButton.disabled = false;
         }
-
-        const user = {
-            id: Date.now(),
-            name,
-            email,
-            password
-        };
-
-        users.push(user);
-        saveUsers(users);
-        setCurrentUser({ id: user.id, name: user.name, email: user.email });
-        showMessage(messageBox, "Account created successfully. Redirecting to home page...", "success");
-        window.setTimeout(() => {
-            window.location.href = "home.html";
-        }, 900);
     });
 }
 
@@ -95,23 +166,10 @@ function setupLoginForm() {
     if (!form) return;
 
     const messageBox = document.getElementById("authMessage");
-    const signedInState = document.getElementById("signedInState");
-    const currentUser = JSON.parse(localStorage.getItem(CURRENT_USER_STORAGE_KEY) || "null");
+    renderSignedInState();
+    attachGoogleAuth("googleLoginBtn", messageBox);
 
-    if (currentUser && signedInState) {
-        signedInState.innerHTML = `
-            <p>You are currently signed in as <strong>${currentUser.name}</strong>.</p>
-            <button type="button" class="btn secondary-btn" id="signOutBtn">Sign Out</button>
-        `;
-
-        const signOutBtn = document.getElementById("signOutBtn");
-        signOutBtn?.addEventListener("click", () => {
-            clearCurrentUser();
-            window.location.reload();
-        });
-    }
-
-    form.addEventListener("submit", (event) => {
+    form.addEventListener("submit", async (event) => {
         event.preventDefault();
 
         const formData = new FormData(form);
@@ -123,21 +181,31 @@ function setupLoginForm() {
             return;
         }
 
-        const user = getUsers().find((entry) => entry.email === email && entry.password === password);
-        if (!user) {
-            showMessage(messageBox, "Incorrect email or password.", "error");
-            return;
-        }
+        try {
+            const submitButton = form.querySelector('button[type="submit"]');
+            if (submitButton) submitButton.disabled = true;
+            showMessage(messageBox, "Signing you in...", "success");
 
-        setCurrentUser({ id: user.id, name: user.name, email: user.email });
-        showMessage(messageBox, "Signed in successfully. Redirecting...", "success");
-        window.setTimeout(() => {
-            window.location.href = "home.html";
-        }, 800);
+            await window.animartFirebase.signInWithEmail({ email, password });
+
+            showMessage(messageBox, "Signed in successfully. Redirecting...", "success");
+            window.setTimeout(() => {
+                window.location.href = LOGIN_REDIRECT_PAGE;
+            }, 800);
+        } catch (error) {
+            showMessage(messageBox, getFriendlyAuthError(error), "error");
+        } finally {
+            const submitButton = form.querySelector('button[type="submit"]');
+            if (submitButton) submitButton.disabled = false;
+        }
     });
 }
 
 document.addEventListener("DOMContentLoaded", () => {
     setupSignupForm();
     setupLoginForm();
+});
+
+window.animartFirebase?.onUserChange?.(() => {
+    renderSignedInState();
 });

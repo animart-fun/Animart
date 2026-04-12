@@ -5,7 +5,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (!store) {
         alert("Store not found");
-        window.location.href = "home.html";
+        window.location.href = "index.html";
         return;
     }
 

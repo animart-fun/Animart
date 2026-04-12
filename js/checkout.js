@@ -24,7 +24,7 @@ function renderCheckoutPage() {
             <div class="empty-cart">
                 <h3>No items ready for checkout</h3>
                 <p>Add products to your cart or use Buy Now from a product page.</p>
-                <a href="home.html" class="cta-link">Start Shopping</a>
+                <a href="index.html" class="cta-link">Start Shopping</a>
             </div>
         `;
         document.getElementById("placeOrderBtn").disabled = true;

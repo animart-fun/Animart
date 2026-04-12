@@ -6,7 +6,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (!product) {
         alert("Product not found");
-        window.location.href = "home.html";
+        window.location.href = "index.html";
         return;
     }
 

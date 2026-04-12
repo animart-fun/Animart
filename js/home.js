@@ -1,7 +1,291 @@
 const SEARCH_PAGE = "search.html";
 const LOGIN_PAGE = "login.html";
 const CART_PAGE = "cart.html";
-const CURRENT_USER_KEY = "animartCurrentUser";
+const CURRENT_USER_STORAGE_KEY = "animartCurrentUser";
+const CART_STORAGE_KEY = "animartCart";
+const ACCOUNT_LINKS = [
+    { label: "Orders", href: "orders.html" },
+    { label: "Returns & Refunds", href: "returns.html" },
+    { label: "Settings", href: "settings.html" }
+];
+
+function createFirebaseFallback() {
+    if (window.animartFirebase) return window.animartFirebase;
+
+    const getCurrentUser = () => {
+        try {
+            return JSON.parse(localStorage.getItem(CURRENT_USER_STORAGE_KEY));
+        } catch (error) {
+            return null;
+        }
+    };
+
+    const noopAsync = async () => {
+        throw new Error("Firebase failed to load. Please refresh the page.");
+    };
+
+    window.animartFirebase = {
+        getCurrentUser,
+        onUserChange(callback) {
+            if (typeof callback === "function") callback(getCurrentUser());
+            return () => {};
+        },
+        signUpWithEmail: noopAsync,
+        signInWithEmail: noopAsync,
+        signInWithGoogle: noopAsync,
+        signOutUser: async () => {
+            localStorage.removeItem(CURRENT_USER_STORAGE_KEY);
+            window.dispatchEvent(new CustomEvent("animart:user-changed", { detail: null }));
+        },
+        writeCartToDatabase: async () => {}
+    };
+
+    return window.animartFirebase;
+}
+
+function setupFirebaseClient() {
+    if (window.animartFirebase || !window.firebase) {
+        return createFirebaseFallback();
+    }
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyCZs96ObK28j4gWhSbDfkrEsphDHUGVGH8",
+        authDomain: "animart-8dcbb.firebaseapp.com",
+        projectId: "animart-8dcbb",
+        storageBucket: "animart-8dcbb.firebasestorage.app",
+        messagingSenderId: "158608291444",
+        appId: "1:158608291444:web:3fd88210010269ca738321",
+        measurementId: "G-QQKLK5H64R",
+        databaseURL: "https://animart-8dcbb-default-rtdb.firebaseio.com"
+    };
+
+    if (!window.firebase.apps.length) {
+        window.firebase.initializeApp(firebaseConfig);
+    }
+
+    const auth = window.firebase.auth();
+    const db = window.firebase.database();
+    const googleProvider = new window.firebase.auth.GoogleAuthProvider();
+    let currentProfile = null;
+    let remoteCartLoadedForUid = null;
+
+    function writeStoredUser(user) {
+        if (!user) {
+            localStorage.removeItem(CURRENT_USER_STORAGE_KEY);
+            return;
+        }
+
+        localStorage.setItem(CURRENT_USER_STORAGE_KEY, JSON.stringify(user));
+    }
+
+    function readStoredUser() {
+        try {
+            return JSON.parse(localStorage.getItem(CURRENT_USER_STORAGE_KEY));
+        } catch (error) {
+            return null;
+        }
+    }
+
+    function readLocalCart() {
+        try {
+            const parsed = JSON.parse(localStorage.getItem(CART_STORAGE_KEY));
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (error) {
+            return [];
+        }
+    }
+
+    function normalizeCartItem(item) {
+        return {
+            id: String(item?.id || ""),
+            quantity: Math.max(1, Number(item?.quantity || 1)),
+            selected: item?.selected !== false
+        };
+    }
+
+    function mergeCartItems(localCart, remoteCart) {
+        const merged = new Map();
+
+        [...remoteCart, ...localCart].forEach((entry) => {
+            const item = normalizeCartItem(entry);
+            if (!item.id) return;
+
+            const existing = merged.get(item.id);
+            if (!existing) {
+                merged.set(item.id, item);
+                return;
+            }
+
+            existing.quantity = Math.max(existing.quantity, item.quantity);
+            existing.selected = existing.selected || item.selected;
+        });
+
+        return [...merged.values()];
+    }
+
+    function mapUser(authUser, profile = {}) {
+        if (!authUser) return null;
+
+        return {
+            uid: authUser.uid,
+            id: authUser.uid,
+            name: profile.name || authUser.displayName || "Animart User",
+            email: authUser.email || profile.email || "",
+            phoneNumber: profile.phoneNumber || authUser.phoneNumber || "",
+            dateOfBirth: profile.dateOfBirth || "",
+            photoURL: authUser.photoURL || profile.photoURL || "",
+            provider: profile.provider || authUser.providerData?.[0]?.providerId || "password",
+            createdAt: profile.createdAt || authUser.metadata?.creationTime || "",
+            lastLoginAt: profile.lastLoginAt || authUser.metadata?.lastSignInTime || ""
+        };
+    }
+
+    async function getUserProfile(uid) {
+        if (!uid) return null;
+        const snapshot = await db.ref(`users/${uid}`).once("value");
+        return snapshot.val();
+    }
+
+    async function persistUserProfile(authUser, extraProfile = {}) {
+        if (!authUser) return null;
+
+        const existingProfile = await getUserProfile(authUser.uid);
+        const payload = {
+            uid: authUser.uid,
+            email: authUser.email || existingProfile?.email || "",
+            name: extraProfile.name || authUser.displayName || existingProfile?.name || "Animart User",
+            phoneNumber: extraProfile.phoneNumber ?? existingProfile?.phoneNumber ?? authUser.phoneNumber ?? "",
+            dateOfBirth: extraProfile.dateOfBirth ?? existingProfile?.dateOfBirth ?? "",
+            photoURL: authUser.photoURL || existingProfile?.photoURL || "",
+            provider: extraProfile.provider || authUser.providerData?.[0]?.providerId || existingProfile?.provider || "password",
+            createdAt: existingProfile?.createdAt || authUser.metadata?.creationTime || new Date().toISOString(),
+            lastLoginAt: new Date().toISOString()
+        };
+
+        await db.ref(`users/${authUser.uid}`).update(payload);
+        currentProfile = payload;
+        const mappedUser = mapUser(authUser, payload);
+        writeStoredUser(mappedUser);
+        window.dispatchEvent(new CustomEvent("animart:user-changed", { detail: mappedUser }));
+        return mappedUser;
+    }
+
+    async function writeCartToDatabase(cart, uid = auth.currentUser?.uid) {
+        if (!uid) return;
+
+        const normalizedCart = cart.map(normalizeCartItem).filter((item) => item.id);
+        const itemMap = normalizedCart.reduce((acc, item) => {
+            acc[item.id] = {
+                productId: item.id,
+                quantity: item.quantity,
+                selected: item.selected,
+                updatedAt: new Date().toISOString()
+            };
+            return acc;
+        }, {});
+
+        await db.ref(`carts/${uid}`).set({
+            uid,
+            items: itemMap,
+            updatedAt: new Date().toISOString()
+        });
+    }
+
+    async function loadRemoteCart(uid = auth.currentUser?.uid) {
+        if (!uid) return [];
+
+        const snapshot = await db.ref(`carts/${uid}/items`).once("value");
+        const cartItems = Object.values(snapshot.val() || {}).map((item) => ({
+            id: item.productId,
+            quantity: item.quantity,
+            selected: item.selected
+        }));
+
+        return cartItems.map(normalizeCartItem);
+    }
+
+    async function syncCartAfterAuth(authUser) {
+        if (!authUser) {
+            remoteCartLoadedForUid = null;
+            return;
+        }
+
+        if (remoteCartLoadedForUid === authUser.uid) return;
+
+        const remoteCart = await loadRemoteCart(authUser.uid);
+        const mergedCart = mergeCartItems(readLocalCart(), remoteCart);
+        localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(mergedCart));
+        await writeCartToDatabase(mergedCart, authUser.uid);
+        remoteCartLoadedForUid = authUser.uid;
+        window.dispatchEvent(new CustomEvent("animart:cart-synced", { detail: mergedCart }));
+    }
+
+    const api = {
+        auth,
+        db,
+        getCurrentUser: readStoredUser,
+        onUserChange(callback) {
+            if (typeof callback !== "function") return () => {};
+            callback(readStoredUser());
+            const listener = (event) => callback(event.detail || null);
+            window.addEventListener("animart:user-changed", listener);
+            return () => window.removeEventListener("animart:user-changed", listener);
+        },
+        async signUpWithEmail({ name, email, password, phoneNumber, dateOfBirth }) {
+            const credential = await auth.createUserWithEmailAndPassword(email, password);
+            if (name) {
+                await credential.user.updateProfile({ displayName: name });
+            }
+
+            return persistUserProfile(credential.user, {
+                name,
+                email,
+                phoneNumber,
+                dateOfBirth,
+                provider: "password"
+            });
+        },
+        async signInWithEmail({ email, password }) {
+            const credential = await auth.signInWithEmailAndPassword(email, password);
+            return persistUserProfile(credential.user, { provider: "password" });
+        },
+        async signInWithGoogle() {
+            const credential = await auth.signInWithPopup(googleProvider);
+            return persistUserProfile(credential.user, { provider: "google.com" });
+        },
+        async signOutUser() {
+            await auth.signOut();
+            currentProfile = null;
+            writeStoredUser(null);
+            window.dispatchEvent(new CustomEvent("animart:user-changed", { detail: null }));
+        },
+        persistUserProfile,
+        writeCartToDatabase,
+        loadRemoteCart,
+        syncCartAfterAuth
+    };
+
+    auth.setPersistence(window.firebase.auth.Auth.Persistence.LOCAL).catch(() => {});
+
+    auth.onAuthStateChanged(async (authUser) => {
+        if (!authUser) {
+            currentProfile = null;
+            remoteCartLoadedForUid = null;
+            writeStoredUser(null);
+            window.dispatchEvent(new CustomEvent("animart:user-changed", { detail: null }));
+            return;
+        }
+
+        const profile = await persistUserProfile(authUser, currentProfile || {});
+        await syncCartAfterAuth(authUser);
+        window.dispatchEvent(new CustomEvent("animart:user-ready", { detail: profile }));
+    });
+
+    window.animartFirebase = api;
+    return api;
+}
+
+setupFirebaseClient();
 
 let sliderState = {
     slides: null,
@@ -36,11 +320,7 @@ function slugify(value) {
 }
 
 function getCurrentUser() {
-    try {
-        return JSON.parse(localStorage.getItem(CURRENT_USER_KEY));
-    } catch (error) {
-        return null;
-    }
+    return window.animartFirebase?.getCurrentUser?.() || null;
 }
 
 function getAllStores() {
@@ -338,6 +618,29 @@ function syncFooterLinks() {
     });
 }
 
+function renderFooterPayments() {
+    document.querySelectorAll(".payment-methods").forEach((container) => {
+        container.innerHTML = `
+            <p class="payment-partner-label">Our payment partner</p>
+            <div class="payment-partner-brand">
+                <img src="assets/footer_payment/razorpay.png" alt="Razorpay logo">
+            </div>
+            <p class="payment-method-copy">Card, UPI, Netbanking & Wallet</p>
+            <div class="payment-logo-row">
+                <img src="assets/footer_payment/amex.png" alt="American Express">
+                <img src="assets/footer_payment/mastercard.png" alt="Mastercard">
+                <img src="assets/footer_payment/rupay.png" alt="RuPay">
+                <img src="assets/footer_payment/upi.png" alt="UPI">
+                <img src="assets/footer_payment/visa.png" alt="Visa">
+            </div>
+        `;
+    });
+}
+
+function closeAccountMenus() {
+    document.querySelectorAll(".account-nav").forEach((item) => item.classList.remove("open"));
+}
+
 function syncHeaderAccount() {
     const accountItem = document.querySelector(".nav-right .nav-item");
     if (!accountItem) return;
@@ -347,9 +650,49 @@ function syncHeaderAccount() {
     const topText = currentUser ? `Hello, ${firstName}` : "Hello, Sign in";
     const bottomText = currentUser ? "My Account" : "Account";
 
-    accountItem.innerHTML = `<span>${escapeHtml(topText)}</span><strong>${escapeHtml(bottomText)}</strong>`;
-    accountItem.addEventListener("click", () => {
-        window.location.href = LOGIN_PAGE;
+    accountItem.classList.add("account-nav");
+
+    if (!currentUser) {
+        accountItem.classList.remove("open");
+        accountItem.innerHTML = `<span>${escapeHtml(topText)}</span><strong>${escapeHtml(bottomText)}</strong>`;
+        accountItem.onclick = () => {
+            window.location.href = LOGIN_PAGE;
+        };
+        return;
+    }
+
+    accountItem.innerHTML = `
+        <span>${escapeHtml(topText)}</span>
+        <strong>${escapeHtml(bottomText)}</strong>
+        <div class="account-dropdown">
+            ${ACCOUNT_LINKS.map((link) => `
+                <a href="${link.href}" class="account-dropdown-link">${escapeHtml(link.label)}</a>
+            `).join("")}
+            <button type="button" class="account-dropdown-link account-logout-btn" data-account-logout="true">Log Out</button>
+        </div>
+    `;
+
+    accountItem.onclick = (event) => {
+        if (event.target.closest("[data-account-logout]")) return;
+        const clickedLink = event.target.closest(".account-dropdown-link");
+        if (clickedLink?.tagName === "A") return;
+        event.stopPropagation();
+        const willOpen = !accountItem.classList.contains("open");
+        closeAccountMenus();
+        accountItem.classList.toggle("open", willOpen);
+    };
+
+    accountItem.querySelector("[data-account-logout]")?.addEventListener("click", async (event) => {
+        event.stopPropagation();
+        await window.animartFirebase.signOutUser();
+        closeAccountMenus();
+        if (window.location.pathname.endsWith("/orders.html")
+            || window.location.pathname.endsWith("/returns.html")
+            || window.location.pathname.endsWith("/settings.html")) {
+            window.location.href = LOGIN_PAGE;
+            return;
+        }
+        syncHeaderAccount();
     });
 }
 
@@ -452,11 +795,22 @@ document.addEventListener("click", (event) => {
 
 document.addEventListener("DOMContentLoaded", () => {
     syncFooterLinks();
+    renderFooterPayments();
     syncHeaderAccount();
     setupSearchBar();
     setupSlider();
     renderHomeFeatured();
     setupCategoryLinks();
+});
+
+document.addEventListener("click", (event) => {
+    if (!event.target.closest(".account-nav")) {
+        closeAccountMenus();
+    }
+});
+
+window.animartFirebase?.onUserChange?.(() => {
+    syncHeaderAccount();
 });
 
 window.formatPrice = formatPrice;
