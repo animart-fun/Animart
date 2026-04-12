@@ -81,6 +81,12 @@ header {
     border: none;
     font-weight: 700;
     cursor: pointer;
+    transition: transform 0.22s ease, box-shadow 0.22s ease, background-color 0.22s ease, color 0.22s ease;
+}
+
+.btn:disabled {
+    opacity: 0.7;
+    cursor: wait;
 }
 
 .secondary-btn {
@@ -89,9 +95,23 @@ header {
     border: 1px solid rgba(255, 145, 0, 0.45);
 }
 
+.google-btn {
+    background: #f5f8fc;
+    color: #051224;
+    margin-bottom: 10px;
+}
+
+.google-btn:hover {
+    background: #ffffff;
+    transform: translateY(-2px);
+    box-shadow: 0 14px 28px rgba(255, 255, 255, 0.12);
+}
+
 .btn:hover {
     background-color: #ffd29b;
     color: #051224;
+    transform: translateY(-2px);
+    box-shadow: 0 16px 30px rgba(255, 145, 0, 0.2);
 }
 
 .end {
@@ -101,6 +121,12 @@ header {
 .a {
     color: #ffb454;
     text-decoration: none;
+    transition: color 0.2s ease, opacity 0.2s ease;
+}
+
+.a:hover {
+    color: #ffd29b;
+    opacity: 1;
 }
 
 .auth-message {
@@ -120,6 +146,23 @@ header {
 .signed-in-state {
     margin-bottom: 12px;
     color: #d8e0ee;
+}
+
+.auth-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #d1dced;
+    font-size: 13px;
+    margin: 8px 0 16px;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.14);
 }
 
 @media (max-width: 720px) {

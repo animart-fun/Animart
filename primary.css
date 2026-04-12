@@ -143,26 +143,60 @@
         display: flex;
         gap: 20px;
         font-size: 14px;
-    }
-
-    .dropdown {
-        position: absolute;
-        top: 40px;
-        right: 0;
-        background: #122b4d;
-        padding: 15px;
-        border-radius: 10px;
-        width: 200px;
-        display: none;
-        flex-direction: column;
         align-items: center;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-        z-index: 1000;
     }
 
     .nav-item {
         text-align: center;
         cursor: pointer;
+        transition: transform 0.2s ease, color 0.2s ease;
+    }
+
+    .nav-item:hover {
+        transform: translateY(-2px);
+        color: #ffcf8b;
+    }
+
+    .account-nav {
+        position: relative;
+    }
+
+    .account-dropdown {
+        position: absolute;
+        top: calc(100% + 12px);
+        right: 0;
+        min-width: 220px;
+        display: none;
+        flex-direction: column;
+        padding: 10px;
+        border-radius: 16px;
+        background: rgba(8, 22, 42, 0.98);
+        border: 1px solid rgba(255, 145, 0, 0.35);
+        box-shadow: 0 20px 45px rgba(0, 0, 0, 0.35);
+        z-index: 1000;
+    }
+
+    .account-nav.open .account-dropdown {
+        display: flex;
+    }
+
+    .account-dropdown-link {
+        color: #f5f8fc;
+        text-decoration: none;
+        padding: 12px 14px;
+        text-align: left;
+        border-radius: 12px;
+        border: none;
+        background: transparent;
+        font: inherit;
+        cursor: pointer;
+        transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease;
+    }
+
+    .account-dropdown-link:hover {
+        background: rgba(255, 145, 0, 0.14);
+        color: #ffcf8b;
+        transform: translateX(4px);
     }
 
     .nav-item span {
@@ -238,13 +272,42 @@
     }
 
     .payment-methods {
-        margin-top: 10px;
-        font-size: 18px;
-        letter-spacing: 3px;
+        margin-top: 12px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .payment-partner-label,
+    .payment-method-copy {
+        margin: 0;
+        color: #d1dced;
+        letter-spacing: normal;
+    }
+
+    .payment-partner-brand img {
+        display: block;
+        max-width: 240px;
+        width: 100%;
+        height: auto;
+        object-fit: contain;
+        filter: drop-shadow(0 10px 22px rgba(0, 0, 0, 0.28));
+    }
+
+    .payment-logo-row {
         display: flex;
         justify-content: center;
+        align-items: center;
+        gap: 14px;
         flex-wrap: wrap;
-        gap: 10px;
+    }
+
+    .payment-logo-row img {
+        width: auto;
+        max-width: 84px;
+        height: 30px;
+        object-fit: contain;
     }
 
     .nav-item strong a {
@@ -286,6 +349,10 @@
 
         .nav-right {
             justify-content: flex-end;
+        }
+
+        .account-dropdown {
+            right: 0;
         }
     }
 
@@ -349,5 +416,15 @@
 
         .site-footer {
             padding: 40px 20px 120px 20px;
+        }
+
+        .account-dropdown {
+            right: -6px;
+            min-width: 200px;
+        }
+
+        .payment-logo-row img {
+            max-width: 68px;
+            height: 26px;
         }
     }

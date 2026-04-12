@@ -41,6 +41,8 @@
             <div class="header">Login</div>
             <p class="auth-copy">Sign in to save your cart, continue checkout, and track your favorite picks.</p>
             <div id="signedInState" class="signed-in-state"></div>
+            <button class="btn google-btn" type="button" id="googleLoginBtn">Continue with Google</button>
+            <div class="auth-divider"><span>or sign in with email</span></div>
             <form id="loginForm">
                 <div class="blocks">
                     <label class="input-label" for="loginEmail">Email Address</label>
@@ -94,7 +96,18 @@
         <div class="footer-bottom">
             <p>&copy; 2026 Animart. All rights reserved.</p>
             <div class="payment-methods">
-                <span>Visa</span> <span>Mastercard</span> <span>UPI</span>
+                <p class="payment-partner-label">Our payment partner</p>
+                <div class="payment-partner-brand">
+                    <img src="assets/footer_payment/razorpay.png" alt="Razorpay logo">
+                </div>
+                <p class="payment-method-copy">Card, UPI, Netbanking & Wallet</p>
+                <div class="payment-logo-row">
+                    <img src="assets/footer_payment/amex.png" alt="American Express">
+                    <img src="assets/footer_payment/mastercard.png" alt="Mastercard">
+                    <img src="assets/footer_payment/rupay.png" alt="RuPay">
+                    <img src="assets/footer_payment/upi.png" alt="UPI">
+                    <img src="assets/footer_payment/visa.png" alt="Visa">
+                </div>
             </div>
         </div>
     </footer>
@@ -108,6 +121,10 @@
     <script src="data/candles/kk.js"></script>
     <script src="data/anime/hh.js"></script>
     <script src="data/stores_index.js"></script>
+    <script src="node_modules/firebase/firebase-app-compat.js"></script>
+    <script src="node_modules/firebase/firebase-auth-compat.js"></script>
+    <script src="node_modules/firebase/firebase-database-compat.js"></script>
+    <script src="js/firebase.js"></script>
     <script src="js/home.js"></script>
     <script src="js/cart.js"></script>
     <script src="js/auth.js"></script>

@@ -41,6 +41,8 @@
             <div class="header">Sign Up</div>
             <p class="auth-copy">Save your wishlist, move through checkout faster, and keep your favorite finds in one
                 place.</p>
+            <button class="btn google-btn" type="button" id="googleSignupBtn">Continue with Google</button>
+            <div class="auth-divider"><span>or create your account</span></div>
             <form id="signupForm">
                 <div class="form-grid">
                     <div class="blocks">
@@ -52,6 +54,15 @@
                         <label class="input-label" for="signupEmail">Email Address</label>
                         <input type="email" id="signupEmail" name="email" class="enter" placeholder="you@example.com"
                             required>
+                    </div>
+                    <div class="blocks">
+                        <label class="input-label" for="signupPhone">Phone Number (Optional)</label>
+                        <input type="tel" id="signupPhone" name="phoneNumber" class="enter"
+                            placeholder="98765 43210">
+                    </div>
+                    <div class="blocks">
+                        <label class="input-label" for="signupDob">Date of Birth</label>
+                        <input type="date" id="signupDob" name="dateOfBirth" class="enter" required>
                     </div>
                     <div class="blocks">
                         <label class="input-label" for="signupPassword">Password</label>
@@ -105,7 +116,18 @@
         <div class="footer-bottom">
             <p>&copy; 2026 Animart. All rights reserved.</p>
             <div class="payment-methods">
-                <span>Visa</span> <span>Mastercard</span> <span>UPI</span>
+                <p class="payment-partner-label">Our payment partner</p>
+                <div class="payment-partner-brand">
+                    <img src="assets/footer_payment/razorpay.png" alt="Razorpay logo">
+                </div>
+                <p class="payment-method-copy">Card, UPI, Netbanking & Wallet</p>
+                <div class="payment-logo-row">
+                    <img src="assets/footer_payment/amex.png" alt="American Express">
+                    <img src="assets/footer_payment/mastercard.png" alt="Mastercard">
+                    <img src="assets/footer_payment/rupay.png" alt="RuPay">
+                    <img src="assets/footer_payment/upi.png" alt="UPI">
+                    <img src="assets/footer_payment/visa.png" alt="Visa">
+                </div>
             </div>
         </div>
     </footer>
@@ -119,6 +141,10 @@
     <script src="data/candles/kk.js"></script>
     <script src="data/anime/hh.js"></script>
     <script src="data/stores_index.js"></script>
+    <script src="node_modules/firebase/firebase-app-compat.js"></script>
+    <script src="node_modules/firebase/firebase-auth-compat.js"></script>
+    <script src="node_modules/firebase/firebase-database-compat.js"></script>
+    <script src="js/firebase.js"></script>
     <script src="js/home.js"></script>
     <script src="js/cart.js"></script>
     <script src="js/auth.js"></script>
