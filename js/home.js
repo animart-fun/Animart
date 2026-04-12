@@ -140,6 +140,13 @@ function setupFirebaseClient() {
         };
     }
 
+    function emitSignedInUser(authUser, profile = {}) {
+        const mappedUser = mapUser(authUser, profile);
+        writeStoredUser(mappedUser);
+        window.dispatchEvent(new CustomEvent("animart:user-changed", { detail: mappedUser }));
+        return mappedUser;
+    }
+
     async function getUserProfile(uid) {
         if (!uid) return null;
         const snapshot = await db.ref(`users/${uid}`).once("value");
@@ -164,10 +171,7 @@ function setupFirebaseClient() {
 
         await db.ref(`users/${authUser.uid}`).update(payload);
         currentProfile = payload;
-        const mappedUser = mapUser(authUser, payload);
-        writeStoredUser(mappedUser);
-        window.dispatchEvent(new CustomEvent("animart:user-changed", { detail: mappedUser }));
-        return mappedUser;
+        return emitSignedInUser(authUser, payload);
     }
 
     async function writeCartToDatabase(cart, uid = auth.currentUser?.uid) {
@@ -237,21 +241,41 @@ function setupFirebaseClient() {
                 await credential.user.updateProfile({ displayName: name });
             }
 
-            return persistUserProfile(credential.user, {
+            const localUser = emitSignedInUser(credential.user, {
                 name,
                 email,
                 phoneNumber,
                 dateOfBirth,
                 provider: "password"
             });
+
+            persistUserProfile(credential.user, {
+                name,
+                email,
+                phoneNumber,
+                dateOfBirth,
+                provider: "password"
+            }).catch((error) => {
+                console.error("Animart profile sync failed after signup:", error);
+            });
+
+            return localUser;
         },
         async signInWithEmail({ email, password }) {
             const credential = await auth.signInWithEmailAndPassword(email, password);
-            return persistUserProfile(credential.user, { provider: "password" });
+            const localUser = emitSignedInUser(credential.user, { provider: "password" });
+            persistUserProfile(credential.user, { provider: "password" }).catch((error) => {
+                console.error("Animart profile sync failed after email sign-in:", error);
+            });
+            return localUser;
         },
         async signInWithGoogle() {
             const credential = await auth.signInWithPopup(googleProvider);
-            return persistUserProfile(credential.user, { provider: "google.com" });
+            const localUser = emitSignedInUser(credential.user, { provider: "google.com" });
+            persistUserProfile(credential.user, { provider: "google.com" }).catch((error) => {
+                console.error("Animart profile sync failed after Google sign-in:", error);
+            });
+            return localUser;
         },
         async signOutUser() {
             await auth.signOut();
@@ -276,9 +300,16 @@ function setupFirebaseClient() {
             return;
         }
 
-        const profile = await persistUserProfile(authUser, currentProfile || {});
-        await syncCartAfterAuth(authUser);
-        window.dispatchEvent(new CustomEvent("animart:user-ready", { detail: profile }));
+        const localUser = emitSignedInUser(authUser, currentProfile || {});
+
+        try {
+            const profile = await persistUserProfile(authUser, currentProfile || {});
+            await syncCartAfterAuth(authUser);
+            window.dispatchEvent(new CustomEvent("animart:user-ready", { detail: profile }));
+        } catch (error) {
+            console.error("Animart auth state sync failed:", error);
+            window.dispatchEvent(new CustomEvent("animart:user-ready", { detail: localUser }));
+        }
     });
 
     window.animartFirebase = api;

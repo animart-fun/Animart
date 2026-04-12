@@ -1,5 +1,9 @@
 const LOGIN_REDIRECT_PAGE = "index.html";
 
+function isAuthScreen() {
+    return /\/?(login|sign)\.html$/i.test(window.location.pathname);
+}
+
 function showMessage(target, message, type) {
     if (!target) return;
     target.textContent = message;
@@ -66,6 +70,13 @@ function renderSignedInState() {
     });
 }
 
+function redirectIfAuthenticated() {
+    if (!isAuthScreen()) return;
+    const currentUser = window.animartFirebase?.getCurrentUser?.();
+    if (!currentUser) return;
+    window.location.href = LOGIN_REDIRECT_PAGE;
+}
+
 function attachGoogleAuth(buttonId, messageBox) {
     const googleButton = document.getElementById(buttonId);
     if (!googleButton) return;
@@ -76,9 +87,7 @@ function attachGoogleAuth(buttonId, messageBox) {
             showMessage(messageBox, "Connecting your Google account...", "success");
             await window.animartFirebase.signInWithGoogle();
             showMessage(messageBox, "Google sign in successful. Redirecting...", "success");
-            window.setTimeout(() => {
-                window.location.href = LOGIN_REDIRECT_PAGE;
-            }, 700);
+            window.setTimeout(redirectIfAuthenticated, 150);
         } catch (error) {
             showMessage(messageBox, getFriendlyAuthError(error), "error");
         } finally {
@@ -149,9 +158,7 @@ function setupSignupForm() {
             });
 
             showMessage(messageBox, "Account created successfully. Redirecting...", "success");
-            window.setTimeout(() => {
-                window.location.href = LOGIN_REDIRECT_PAGE;
-            }, 900);
+            window.setTimeout(redirectIfAuthenticated, 150);
         } catch (error) {
             showMessage(messageBox, getFriendlyAuthError(error), "error");
         } finally {
@@ -189,9 +196,7 @@ function setupLoginForm() {
             await window.animartFirebase.signInWithEmail({ email, password });
 
             showMessage(messageBox, "Signed in successfully. Redirecting...", "success");
-            window.setTimeout(() => {
-                window.location.href = LOGIN_REDIRECT_PAGE;
-            }, 800);
+            window.setTimeout(redirectIfAuthenticated, 150);
         } catch (error) {
             showMessage(messageBox, getFriendlyAuthError(error), "error");
         } finally {
@@ -202,10 +207,12 @@ function setupLoginForm() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+    redirectIfAuthenticated();
     setupSignupForm();
     setupLoginForm();
 });
 
 window.animartFirebase?.onUserChange?.(() => {
     renderSignedInState();
+    redirectIfAuthenticated();
 });
