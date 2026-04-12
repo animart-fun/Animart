@@ -21,7 +21,10 @@ function getCart() {
 function saveCart(cart) {
     const normalizedCart = cart.map(normalizeCartItem);
     localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(normalizedCart));
-    window.animartFirebase?.writeCartToDatabase?.(normalizedCart).catch(() => {});
+    const syncPromise = window.animartFirebase?.writeCartToDatabase?.(normalizedCart);
+    if (syncPromise && typeof syncPromise.catch === "function") {
+        syncPromise.catch(() => {});
+    }
 }
 
 function addToCart(productId, quantity = 1, options = {}) {
