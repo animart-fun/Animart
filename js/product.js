@@ -67,7 +67,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     document.querySelector(".btn.cart")?.addEventListener("click", () => {
         window.addToCart(product.id, 1, { selected: true });
-        window.location.href = "cart.html";
     });
 
     document.querySelector(".btn.buy")?.addEventListener("click", () => {

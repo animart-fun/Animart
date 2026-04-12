@@ -1,8 +1,8 @@
 const SEARCH_PAGE = "search.html";
 const LOGIN_PAGE = "login.html";
 const CART_PAGE = "cart.html";
-const CURRENT_USER_STORAGE_KEY = "animartCurrentUser";
-const CART_STORAGE_KEY = "animartCart";
+const FIREBASE_CURRENT_USER_STORAGE_KEY = "animartCurrentUser";
+const FIREBASE_CART_STORAGE_KEY = "animartCart";
 const ACCOUNT_LINKS = [
     { label: "Orders", href: "orders.html" },
     { label: "Returns & Refunds", href: "returns.html" },
@@ -14,7 +14,7 @@ function createFirebaseFallback() {
 
     const getCurrentUser = () => {
         try {
-            return JSON.parse(localStorage.getItem(CURRENT_USER_STORAGE_KEY));
+            return JSON.parse(localStorage.getItem(FIREBASE_CURRENT_USER_STORAGE_KEY));
         } catch (error) {
             return null;
         }
@@ -34,7 +34,7 @@ function createFirebaseFallback() {
         signInWithEmail: noopAsync,
         signInWithGoogle: noopAsync,
         signOutUser: async () => {
-            localStorage.removeItem(CURRENT_USER_STORAGE_KEY);
+            localStorage.removeItem(FIREBASE_CURRENT_USER_STORAGE_KEY);
             window.dispatchEvent(new CustomEvent("animart:user-changed", { detail: null }));
         },
         writeCartToDatabase: async () => {}
@@ -71,16 +71,16 @@ function setupFirebaseClient() {
 
     function writeStoredUser(user) {
         if (!user) {
-            localStorage.removeItem(CURRENT_USER_STORAGE_KEY);
+            localStorage.removeItem(FIREBASE_CURRENT_USER_STORAGE_KEY);
             return;
         }
 
-        localStorage.setItem(CURRENT_USER_STORAGE_KEY, JSON.stringify(user));
+        localStorage.setItem(FIREBASE_CURRENT_USER_STORAGE_KEY, JSON.stringify(user));
     }
 
     function readStoredUser() {
         try {
-            return JSON.parse(localStorage.getItem(CURRENT_USER_STORAGE_KEY));
+            return JSON.parse(localStorage.getItem(FIREBASE_CURRENT_USER_STORAGE_KEY));
         } catch (error) {
             return null;
         }
@@ -88,7 +88,7 @@ function setupFirebaseClient() {
 
     function readLocalCart() {
         try {
-            const parsed = JSON.parse(localStorage.getItem(CART_STORAGE_KEY));
+            const parsed = JSON.parse(localStorage.getItem(FIREBASE_CART_STORAGE_KEY));
             return Array.isArray(parsed) ? parsed : [];
         } catch (error) {
             return [];
@@ -218,7 +218,7 @@ function setupFirebaseClient() {
 
         const remoteCart = await loadRemoteCart(authUser.uid);
         const mergedCart = mergeCartItems(readLocalCart(), remoteCart);
-        localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(mergedCart));
+        localStorage.setItem(FIREBASE_CART_STORAGE_KEY, JSON.stringify(mergedCart));
         await writeCartToDatabase(mergedCart, authUser.uid);
         remoteCartLoadedForUid = authUser.uid;
         window.dispatchEvent(new CustomEvent("animart:cart-synced", { detail: mergedCart }));
@@ -807,7 +807,6 @@ document.addEventListener("click", (event) => {
     if (addButton && typeof window.addToCart === "function") {
         event.stopPropagation();
         window.addToCart(addButton.dataset.productId, 1, { selected: true });
-        window.location.href = CART_PAGE;
         return;
     }
 

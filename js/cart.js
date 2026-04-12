@@ -1,11 +1,16 @@
 const CART_STORAGE_KEY = "animartCart";
 const CHECKOUT_STORAGE_KEY = "animartCheckout";
 
+function getCurrencyText(value) {
+    return `\u20B9${Number(value || 0).toLocaleString("en-IN")}`;
+}
+
 function normalizeCartItem(item) {
     return {
         id: item.id,
         quantity: Number(item.quantity || 1),
-        selected: item.selected !== false
+        selected: item.selected !== false,
+        snapshot: item.snapshot || null
     };
 }
 
@@ -27,21 +32,69 @@ function saveCart(cart) {
     }
 }
 
+function buildCartSnapshot(productId) {
+    const rawProduct = window.products?.[productId];
+    const normalized = rawProduct && typeof window.normalizeProduct === "function"
+        ? window.normalizeProduct(rawProduct)
+        : rawProduct;
+
+    if (!normalized) return null;
+
+    return {
+        id: normalized.id,
+        name: normalized.name,
+        image: normalized.image,
+        price: Number(normalized.price || 0),
+        realPrice: Number(normalized.realPrice || normalized.price || 0),
+        discount: Number(normalized.discount || 0),
+        storeName: normalized.storeName || normalized.author || "Animart",
+        freeDelivery: !!normalized.freeDelivery
+    };
+}
+
+function ensureCartToast() {
+    let toast = document.getElementById("cartToast");
+    if (toast) return toast;
+
+    toast = document.createElement("div");
+    toast.id = "cartToast";
+    toast.className = "cart-toast";
+    document.body.appendChild(toast);
+    return toast;
+}
+
+function showCartToast(message) {
+    const toast = ensureCartToast();
+    toast.textContent = message;
+    toast.classList.add("show");
+
+    window.clearTimeout(showCartToast.timeoutId);
+    showCartToast.timeoutId = window.setTimeout(() => {
+        toast.classList.remove("show");
+    }, 2400);
+}
+
 function addToCart(productId, quantity = 1, options = {}) {
     if (!productId) return;
 
     const cart = getCart();
     const existingItem = cart.find((item) => item.id === productId);
     const selected = options.selected !== false;
+    const snapshot = buildCartSnapshot(productId);
 
     if (existingItem) {
         existingItem.quantity += quantity;
         existingItem.selected = selected;
+        if (snapshot) existingItem.snapshot = snapshot;
     } else {
-        cart.push({ id: productId, quantity, selected });
+        cart.push({ id: productId, quantity, selected, snapshot });
     }
 
     saveCart(cart);
+    window.dispatchEvent(new CustomEvent("animart:cart-updated", { detail: cart }));
+    if (options.silent !== true) {
+        showCartToast("Added to cart");
+    }
 }
 
 function removeFromCart(productId) {
@@ -113,11 +166,24 @@ function hydrateCartProducts() {
     return getCart()
         .map((item) => {
             const product = window.products?.[item.id];
-            if (!product) return null;
-            const normalized = typeof window.normalizeProduct === "function" ? window.normalizeProduct(product) : product;
-            return { ...item, product: normalized };
+            const normalized = product && typeof window.normalizeProduct === "function"
+                ? window.normalizeProduct(product)
+                : product;
+
+            const hydratedProduct = normalized || item.snapshot || {
+                id: item.id,
+                name: item.id,
+                image: "assets/logo.png",
+                price: 0,
+                realPrice: 0,
+                discount: 0,
+                storeName: "Animart",
+                freeDelivery: false
+            };
+
+            return { ...item, product: hydratedProduct };
         })
-        .filter(Boolean);
+        .filter((entry) => !!entry.product);
 }
 
 function renderCartPage() {
@@ -143,10 +209,10 @@ function renderCartPage() {
 
     if (cartCount) cartCount.textContent = `${items.reduce((sum, item) => sum + item.quantity, 0)} items`;
     if (selectedSummary) selectedSummary.textContent = `${selectedQty} selected`;
-    if (subtotalAmount) subtotalAmount.textContent = window.formatPrice ? window.formatPrice(subtotal) : `?${subtotal}`;
-    if (shippingAmount) shippingAmount.textContent = shipping === 0 ? "Free" : (window.formatPrice ? window.formatPrice(shipping) : `?${shipping}`);
-    if (discountAmount) discountAmount.textContent = window.formatPrice ? window.formatPrice(discount) : `?${discount}`;
-    if (totalAmount) totalAmount.textContent = window.formatPrice ? window.formatPrice(total) : `?${total}`;
+    if (subtotalAmount) subtotalAmount.textContent = window.formatPrice ? window.formatPrice(subtotal) : getCurrencyText(subtotal);
+    if (shippingAmount) shippingAmount.textContent = shipping === 0 ? "Free" : (window.formatPrice ? window.formatPrice(shipping) : getCurrencyText(shipping));
+    if (discountAmount) discountAmount.textContent = window.formatPrice ? window.formatPrice(discount) : getCurrencyText(discount);
+    if (totalAmount) totalAmount.textContent = window.formatPrice ? window.formatPrice(total) : getCurrencyText(total);
     if (selectAllInput) selectAllInput.checked = !!items.length && items.every((item) => item.selected);
 
     if (!items.length) {
@@ -236,6 +302,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 window.addEventListener("animart:cart-synced", renderCartPage);
+window.addEventListener("animart:cart-updated", renderCartPage);
 
 window.getCart = getCart;
 window.saveCart = saveCart;
